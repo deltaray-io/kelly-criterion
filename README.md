@@ -19,14 +19,18 @@ The stock quotes are downloaded from Yahoo Finance using Pandas.
 
 Reference (Matlab) implementation was taken from Ernie Chan's Quantitative Trading book [3].
 
+Installation
+------------
+`pip install kelly_criterion`
+
 Usage
 -----
-`./kelly-criterion.py [--risk-free-rate=<pct>] <start-date> <end-date> <security>...`
+`kelly_criterion [--risk-free-rate=<pct>] <start-date> <end-date> <security>...`
 
 Example
 -------
 ```
-$ ./kelly-criterion.py --risk-free-rate 0.04 2001-02-26 2014-12-28 IBB VDE SPY
+$ kelly_criterion --risk-free-rate 0.04 2001-02-26 2014-12-28 IBB VDE SPY
 Kelly Criterion calculation
 Arguments: risk-free-rate=0.04 start-date=2001-02-26 end-date=2014-12-28 securities=['IBB', 'VDE', 'SPY']
 

@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # Copyright (c) 2014-2015, Tibor Kiss <tibor.kiss@gmail.com>
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 # * Redistributions of source code must retain the above copyright notice, this
 #   list of conditions and the following disclaimer.
-# 
+#
 # * Redistributions in binary form must reproduce the above copyright notice,
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
-# 
-# * Neither the name of kelly-criterion nor the names of its
+#
+# * Neither the name of copyright holder nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -31,7 +31,7 @@
 """Kelly Criterion - (c) 2014-2015, Tibor Kiss <tibor.kiss@gmail.com>
 
 Usage:
-  ./kelly-criterion.py [--risk-free-rate=<pct>] <start-date> <end-date> <security>... 
+  ./kelly_criterion.py [--risk-free-rate=<pct>] <start-date> <end-date> <security>...
 
 Options:
   --risk-free-rate=<pct>  Annualized percentage of the Risk Free Rate. [default: 0.04]
@@ -53,7 +53,7 @@ def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
     """Calculates the optimal leverages for the given securities and time frame.
     Returns a list of (security, leverage) tuple with the calculate optimal leverages.
 
-    Note: riskFreeRate is annualized
+    Note: risk_free_rate is annualized
     """
     f = {}
     ret = {}
@@ -77,32 +77,32 @@ def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
     df = DataFrame(excess_return).dropna()
 
     # Calculate the CoVariance and Mean of the DataFrame
-    C = 252 * df.cov() 
+    C = 252 * df.cov()
     M = 252 * df.mean()
 
     # Calculate the Kelly-Optimal Leverages using Matrix Multiplication
     F = inv(C).dot(M)
 
     # Return a list of (security, leverage) tuple
-    return zip(df.columns.values.tolist(), F) 
+    return zip(df.columns.values.tolist(), F)
 
 
-def main(argv):
+def main():
     """Entry point of Kelly Criterion calculation."""
 
     print "Kelly Criterion calculation"
-    args = docopt(__doc__, argv[1:])
-    
+    args = docopt(__doc__, sys.argv[1:])
+
     # Parse risk-free-rate
     try:
-        riskFreeRate = float(args['--risk-free-rate'])
+        risk_free_rate = float(args['--risk-free-rate'])
     except ValueError, e:
         print 'Error converting risk-free-rate to float: %s' % args['--risk-free-rate']
         sys.exit(-1)
 
     # Verify risk-free-rate
-    if not 0 <= riskFreeRate <= 1.0:
-        print 'Error: risk-free-rate is not in between 0 and 1: %.2f' % riskFreeRate
+    if not 0 <= risk_free_rate <= 1.0:
+        print 'Error: risk-free-rate is not in between 0 and 1: %.2f' % risk_free_rate
         sys.exit(-1)
 
     # Parse start and end dates
@@ -122,10 +122,10 @@ def main(argv):
     print ''
 
     # Calculate the Kelly Optimal leverages
-    leverages = calc_kelly_leverages(args['<security>'], start_date, end_date, riskFreeRate)
+    leverages = calc_kelly_leverages(args['<security>'], start_date, end_date, risk_free_rate)
 
     # Print the results if calculation was successful
-    if leverages: 
+    if leverages:
         print "Leverages per security: "
         for (name, val) in leverages:
             print "  %s: %.2f" % (name, val)
@@ -134,6 +134,6 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
 
 
