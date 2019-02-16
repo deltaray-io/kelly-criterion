@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# Copyright (c) 2014-2015, Tibor Kiss <tibor.kiss@gmail.com>
+# Copyright (c) 2014-2019, Tibor Kiss <tibor.kiss@gmail.com>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,29 +27,38 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-"""Kelly Criterion - (c) 2014-2015, Tibor Kiss <tibor.kiss@gmail.com>
+"""Kelly Criterion - (c) 2014-2019, Tibor Kiss <tibor.kiss@gmail.com>
 
 Usage:
-  ./kelly_criterion.py [--risk-free-rate=<pct>] <start-date> <end-date> <security>...
+  kelly_criterion [options] <start-date> <end-date> <security>...
 
 Options:
-  --risk-free-rate=<pct>  Annualized percentage of the Risk Free Rate. [default: 0.04]
+  --risk-free-rate=<pct>  Annualized percentage of the Risk Free Rate.
+                          [default: 0.04]
 
 """
 
 import sys
-from datetime import datetime
+from datetime import datetime, date
+from typing import Set, Dict
+import logging
 
 from docopt import docopt
 
 from pandas import DataFrame
 from numpy.linalg import inv
-from iexfinance import get_historical_data
+from iexfinance.stocks import get_historical_data
+
+log = logging.getLogger(__name__)
 
 
-def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
-    """Calculates the optimal leverages for the given securities and time frame.
-    Returns a list of (security, leverage) tuple with the calculate optimal leverages.
+def calc_kelly_leverages(securities: Set[str],
+                         start_date: date,
+                         end_date: date,
+                         risk_free_rate: float = 0.04) -> Dict[str, float]:
+    """Calculates the optimal leverages for the given securities and
+    time frame. Returns a list of (security, leverage) tuple with the
+    calculate optimal leverages.
 
     Note: risk_free_rate is annualized
     """
@@ -65,14 +73,15 @@ def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
             hist_prices = get_historical_data(
                 symbol, start=start_date, end=end_date,
                 output_format='pandas')
-        except IOError, e:
-            print 'Unable to download data for %s. Reason: %s' % (symbol, str(e))
-            return None
+        except IOError as e:
+            raise ValueError(f'Unable to download data for {symbol}. '
+                             f'Reason: {str(e)}')
 
         f[symbol] = hist_prices
 
         ret[symbol] = hist_prices['close'].pct_change()
-        excess_return[symbol] = (ret[symbol] - (risk_free_rate / 252))  # risk_free_rate is annualized
+        # risk_free_rate is annualized
+        excess_return[symbol] = (ret[symbol] - (risk_free_rate / 252))
 
     # Create a new DataFrame based on the Excess Returns.
     df = DataFrame(excess_return).dropna()
@@ -85,56 +94,69 @@ def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
     F = inv(C).dot(M)
 
     # Return a list of (security, leverage) tuple
-    return zip(df.columns.values.tolist(), F)
+    return {security: leverage
+            for security, leverage in zip(df.columns.values.tolist(), F)}
 
 
 def main():
     """Entry point of Kelly Criterion calculation."""
+    logging.basicConfig(level=logging.INFO)
 
-    print "Kelly Criterion calculation"
+    log.info("Kelly Criterion calculation")
     args = docopt(__doc__, sys.argv[1:])
 
     # Parse risk-free-rate
     try:
         risk_free_rate = float(args['--risk-free-rate'])
-    except ValueError, e:
-        print 'Error converting risk-free-rate to float: %s' % args['--risk-free-rate']
+    except ValueError:
+        log.error(f"Error converting risk-free-rate to float: "
+                  f"{args['--risk-free-rate']}")
         sys.exit(-1)
 
     # Verify risk-free-rate
     if not 0 <= risk_free_rate <= 1.0:
-        print 'Error: risk-free-rate is not in between 0 and 1: %.2f' % risk_free_rate
+        log.error(f"risk-free-rate is not in between 0 and 1: "
+                  f"{risk_free_rate:%.2f}")
         sys.exit(-1)
 
     # Parse start and end dates
     try:
         start_date = datetime.strptime(args['<start-date>'], "%Y-%m-%d").date()
-    except ValueError, e:
-        print 'Error parsing start-date: %s' % args['<start-date>']
+    except ValueError:
+        log.error(f"Error parsing start-date: {args['<start-date>']}")
         sys.exit(-1)
 
     try:
         end_date = datetime.strptime(args['<end-date>'], "%Y-%m-%d").date()
-    except ValueError, e:
-        print 'Error parsing end-date: %s' % args['<start-date>']
+    except ValueError:
+        log.error(f"Error parsing end-date: {args['<start-date>']}")
         sys.exit(-1)
 
-    print 'Arguments: risk-free-rate=%s start-date=%s end-date=%s securities=%s' % (args['--risk-free-rate'], start_date, end_date, args['<security>'])
-    print ''
+    log.info(
+        f"Arguments: "
+        f"risk-free-rate={args['--risk-free-rate']} "
+        f"start-date={start_date} "
+        f"end-date={end_date} "
+        f"securities={args['<security>']}")
 
     # Calculate the Kelly Optimal leverages
-    leverages = calc_kelly_leverages(args['<security>'], start_date, end_date, risk_free_rate)
+    try:
+        leverages = calc_kelly_leverages(
+            args['<security>'], start_date, end_date, risk_free_rate)
+    except ValueError as e:
+        log.error(f"Error during Kelly calculation: {str(e)}")
+        sys.exit(-1)
 
     # Print the results if calculation was successful
     if leverages:
-        print "Leverages per security: "
-        for (name, val) in leverages:
-            print "  %s: %.2f" % (name, val)
+        log.info("Leverages per security:")
+        sum_leverage = 0
+        for symbol, leverage in leverages.items():
+            sum_leverage += leverage
+            log.info(f"  {symbol}: {leverage:.2f}")
 
-        print "Sum leverage: %.2f " % reduce(lambda x, y: x+y, map(lambda z: z[1], leverages))
+        log.info(f"Sum leverage: {sum_leverage}")
 
 
 if __name__ == '__main__':
     main()
-
-
