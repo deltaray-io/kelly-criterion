@@ -43,10 +43,9 @@ from datetime import datetime
 
 from docopt import docopt
 
-import pandas.io.data as web
 from pandas import DataFrame
-
 from numpy.linalg import inv
+from iexfinance import get_historical_data
 
 
 def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
@@ -63,14 +62,16 @@ def calc_kelly_leverages(securities, start_date, end_date, risk_free_rate=0.04):
     # excess return (return of security - risk free rate) for each security.
     for symbol in securities:
         try:
-            hist_prices = web.DataReader(symbol, 'yahoo', start_date, end_date)
+            hist_prices = get_historical_data(
+                symbol, start=start_date, end=end_date,
+                output_format='pandas')
         except IOError, e:
             print 'Unable to download data for %s. Reason: %s' % (symbol, str(e))
             return None
 
         f[symbol] = hist_prices
 
-        ret[symbol] = hist_prices['Adj Close'].pct_change()
+        ret[symbol] = hist_prices['close'].pct_change()
         excess_return[symbol] = (ret[symbol] - (risk_free_rate / 252))  # risk_free_rate is annualized
 
     # Create a new DataFrame based on the Excess Returns.
