@@ -1,0 +1,31 @@
+[BASIC]
+good-names=log,e,C,M,F,_,df,f
+variable-rgx=[a-z_][a-z0-9_]{2,40}$
+function-rgx=[a-z_][a-z0-9_]{2,100}$
+argument-rgx=[a-z_][a-z0-9_]{2,40}$|mock_[A-Za-z0-9_]+
+method-rgx=[a-z_][a-z0-9_]{2,80}$
+const-rgx=([A-Z_][A-Z0-9_]*|__.*__|[a-z_][a-z0-9_]{2,30})$
+max-attributes=12
+
+[MESSAGES CONTROL]
+disable=missing-docstring,fixme,
+        redefined-outer-name, # py.test fixtures
+        locally-disabled,
+        bad-continuation, #follow the convention of pep8
+        inconsistent-return-statements,
+        no-else-return,
+        logging-fstring-interpolation
+
+[FORMAT]
+max-line-length=80
+
+[SIMILARITIES]
+ignore-docstrings=yes
+ignore-imports=yes
+min-similarity-lines=6
+
+[DESIGN]
+max-locals=25
+max-args=10
+max-nested-blocks=6
+max-parents=8
